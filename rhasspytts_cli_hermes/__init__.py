@@ -61,7 +61,7 @@ class TtsHermesMqtt(HermesClient):
         self.play_finished_events: typing.Dict[typing.Optional[str], asyncio.Event] = {}
 
         # Seconds added to playFinished timeout
-        self.finished_timeout_extra: float = 0.25
+        self.finished_timeout_extra: float = 1.25
 
     # -------------------------------------------------------------------------
 
