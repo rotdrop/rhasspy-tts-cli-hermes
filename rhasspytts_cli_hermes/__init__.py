@@ -10,6 +10,7 @@ import tempfile
 import typing
 import wave
 from uuid import uuid4
+import time
 
 from rhasspyhermes.audioserver import AudioPlayBytes, AudioPlayError, AudioPlayFinished
 from rhasspyhermes.base import Message
@@ -61,7 +62,7 @@ class TtsHermesMqtt(HermesClient):
         self.play_finished_events: typing.Dict[typing.Optional[str], asyncio.Event] = {}
 
         # Seconds added to playFinished timeout
-        self.finished_timeout_extra: float = 1.25
+        self.finished_timeout_extra: float = 1.5
 
     # -------------------------------------------------------------------------
 
@@ -181,7 +182,7 @@ class TtsHermesMqtt(HermesClient):
                         AudioPlayBytes(wav_bytes=wav_bytes),
                         {"site_id": say.site_id, "request_id": request_id},
                     )
-
+                stamp = time.time()
                 try:
                     # Wait for audio to finished playing or timeout
                     wav_duration = get_wav_duration(wav_bytes)
@@ -190,7 +191,11 @@ class TtsHermesMqtt(HermesClient):
                     _LOGGER.debug("Waiting for play finished (timeout=%s)", wav_timeout)
                     await asyncio.wait_for(finished_event.wait(), timeout=wav_timeout)
                 except asyncio.TimeoutError:
-                    _LOGGER.warning("Did not receive playFinished before timeout")
+                    elapsed = time.time() - stamp
+                    _LOGGER.warning("Did not receive playFinished before timeout (%f/%s)", wav_timeout, elapsed)
+                finally:
+                    elapsed = time.time() - stamp
+                    _LOGGER.debug("Timeout/actual %f / %s / %f", wav_timeout, elapsed, wav_duration)
 
         except Exception as e:
             _LOGGER.exception("handle_say")
